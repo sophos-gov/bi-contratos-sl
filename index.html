@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Contratos — Sete Lagoas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --card2: #21253a;
+      --accent: #3b82f6;
+      --accent2: #60a5fa;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --orange: #f97316;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --border: #2d3348;
+      --sidebar-w: 272px;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      height: 100vh;
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+    }
+
+    .sidebar-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent2);
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Multiselect */
+    .multiselect { position: relative; }
+    .ms-trigger {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      transition: border-color 0.15s;
+    }
+    .ms-trigger:hover { border-color: var(--accent); }
+    .ms-trigger.open { border-color: var(--accent); }
+    .ms-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      z-index: 200;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .ms-dropdown.open { display: block; }
+    .ms-actions {
+      display: flex;
+      gap: 4px;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ms-act-btn {
+      flex: 1;
+      padding: 4px 0;
+      font-size: 11px;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .ms-act-btn:hover { color: var(--accent2); border-color: var(--accent); }
+    .ms-option {
+      padding: 7px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      transition: background 0.1s;
+    }
+    .ms-option:hover { background: rgba(59,130,246,0.1); }
+    .ms-option input[type="checkbox"] { accent-color: var(--accent); flex-shrink: 0; }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238892a4' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+    select:focus, input[type="text"]:focus { border-color: var(--accent); }
+    select option { background: #1a1d27; }
+
+    .btn {
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.88; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+    .btn-ghost { background: var(--card2); color: var(--text-muted); border: 1px solid var(--border); width: 100%; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-outline { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* Progress */
+    #progress-wrap { display: none; flex-direction: column; gap: 6px; }
+    #progress-wrap.visible { display: flex; }
+    #progress-track { background: var(--border); border-radius: 100px; height: 5px; overflow: hidden; }
+    #progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 100px; width: 0%; transition: width 0.3s ease; }
+    #progress-text { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+    #last-update { font-size: 11px; color: var(--text-muted); text-align: center; min-height: 16px; }
+
+    /* ── MAIN ────────────────────────────────────── */
+    #main {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-x: hidden;
+      min-width: 0;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .header p { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* Alert */
+    #alert-panel {
+      display: none;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    #alert-panel.visible { display: block; }
+    #alert-panel h3 {
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .alert-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .alert-item {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      max-width: 280px;
+    }
+    .alert-item .ai-num { font-weight: 600; color: var(--danger); font-size: 11px; }
+    .alert-item .ai-date { color: var(--danger); font-weight: 700; }
+    .alert-item .ai-forn { color: var(--text); margin-top: 2px; }
+    .alert-item .ai-obj { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+    .alert-more { display: flex; align-items: center; padding: 10px 14px; color: var(--danger); font-size: 12px; font-weight: 600; }
+
+    /* KPIs */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 12px 12px 0 0;
+    }
+    .kpi-card.c-success::before { background: var(--success); }
+    .kpi-card.c-accent::before { background: var(--accent); }
+    .kpi-card.c-danger::before { background: var(--danger); }
+    .kpi-card.c-orange::before { background: var(--orange); }
+    .kpi-card.c-warning::before { background: var(--warning); }
+    .kpi-card .k-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .kpi-card .k-value { font-size: 26px; font-weight: 700; line-height: 1; }
+    .kpi-card .k-sub { font-size: 11px; color: var(--text-muted); }
+    .kpi-card.c-success .k-value { color: var(--success); }
+    .kpi-card.c-accent .k-value { color: var(--accent2); font-size: 18px; }
+    .kpi-card.c-danger .k-value { color: var(--danger); }
+    .kpi-card.c-orange .k-value { color: var(--orange); }
+    .kpi-card.c-warning .k-value { color: var(--warning); }
+
+    /* Charts */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px 14px;
+    }
+    .chart-card h3 { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 14px; }
+    .chart-card .chart-wrap { position: relative; height: 220px; }
+
+    /* Table */
+    .table-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .table-header h3 { font-size: 15px; font-weight: 600; }
+    .table-info { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .table-wrap { overflow-x: auto; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--card2);
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.15s;
+    }
+    thead th:hover { color: var(--accent2); }
+    thead th.sorted { color: var(--accent2); }
+    thead th .si { margin-left: 3px; opacity: 0.4; font-size: 10px; }
+    thead th.sorted .si { opacity: 1; color: var(--accent); }
+
+    tbody tr { border-bottom: 1px solid rgba(45,51,72,0.6); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(59, 130, 246, 0.04); }
+    tbody td { padding: 9px 12px; font-size: 12px; vertical-align: middle; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .b-vigente { background: rgba(34,197,94,0.12); color: var(--success); }
+    .b-30      { background: rgba(239,68,68,0.12); color: var(--danger); }
+    .b-90      { background: rgba(249,115,22,0.12); color: var(--orange); }
+    .b-vencido { background: rgba(100,116,139,0.12); color: #64748b; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .pg-btn {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      min-width: 32px;
+      text-align: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .pg-btn:hover:not(:disabled):not(.active) { border-color: var(--accent); color: var(--accent); }
+    .pg-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .pg-ellipsis { padding: 5px 6px; color: var(--text-muted); font-size: 12px; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 52px 20px; color: var(--text-muted); }
+    .empty-state .es-icon { font-size: 42px; margin-bottom: 14px; }
+    .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3d4460; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 680px;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      background: var(--card);
+      border-radius: 16px 16px 0 0;
+      z-index: 1;
+    }
+    .modal-header h2 { font-size: 15px; font-weight: 700; }
+    .modal-header p  { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .modal-close {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      width: 32px; height: 32px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); border-color: var(--accent); }
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+    .modal-section h4 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-field { display: flex; flex-direction: column; gap: 3px; }
+    .modal-field .mf-label { font-size: 11px; color: var(--text-muted); }
+    .modal-field .mf-value { font-size: 13px; font-weight: 500; word-break: break-word; }
+    .modal-field.full { grid-column: 1 / -1; }
+    .modal-obj { background: var(--card2); border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.6; }
+
+    tbody tr { cursor: pointer; }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 900px) {
+      body { flex-direction: column; }
+      #sidebar { width: 100%; min-width: unset; height: auto; position: static; flex-direction: row; flex-wrap: wrap; }
+      .sidebar-title { width: 100%; }
+      .filter-group { flex: 1 1 200px; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      #main { padding: 12px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-title">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    Filtros
+  </div>
+
+  <div class="filter-group">
+    <button class="btn btn-primary" id="btn-load" onclick="loadData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.75"/></svg>
+      Carregar Dados
+    </button>
+    <div id="progress-wrap">
+      <div id="progress-track"><div id="progress-bar"></div></div>
+      <div id="progress-text"></div>
+    </div>
+    <div id="last-update"></div>
+  </div>
+
+  <div class="filter-group">
+    <div class="filter-label">Busca livre</div>
+    <input type="text" id="filter-search" placeholder="Fornecedor ou objeto..." oninput="applyFilters()">
+  </div>
+
+  <div class="filter-group">
+    <div class="filter-label">Status</div>
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="">Todos</option>
+      <option value="vigente">Vigente</option>
+      <option value="30">Vencendo em 30 dias</option>
+      <option value="90">Vencendo em 90 dias</option>
+      <option value="vencido">Vencido</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <div class="filter-label">Secretaria</div>
+    <div class="multiselect" id="ms-secretaria">
+      <div class="ms-trigger" id="ms-secretaria-trigger" onclick="toggleMS('secretaria')">
+        <span id="ms-secretaria-label">Todas</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ms-dropdown" id="ms-secretaria-dropdown"></div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <div class="filter-label">Categoria</div>
+    <div class="multiselect" id="ms-categoria">
+      <div class="ms-trigger" id="ms-categoria-trigger" onclick="toggleMS('categoria')">
+        <span id="ms-categoria-label">Todas</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ms-dropdown" id="ms-categoria-dropdown"></div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <div class="filter-label">Modalidade</div>
+    <div class="multiselect" id="ms-modalidade">
+      <div class="ms-trigger" id="ms-modalidade-trigger" onclick="toggleMS('modalidade')">
+        <span id="ms-modalidade-label">Todas</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ms-dropdown" id="ms-modalidade-dropdown"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-ghost" onclick="resetFilters()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.75"/></svg>
+    Limpar Filtros
+  </button>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main id="main">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>Contratos — Sete Lagoas</h1>
+      <p>Dados Abertos · Prefeitura Municipal · Portal Fácil</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Alert Panel -->
+  <div id="alert-panel">
+    <h3>⚠ Contratos vencendo em até 30 dias</h3>
+    <div class="alert-list" id="alert-list"></div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card c-success">
+      <div class="k-label">Contratos Vigentes</div>
+      <div class="k-value" id="kpi-vigentes">—</div>
+      <div class="k-sub">Ativos hoje</div>
+    </div>
+    <div class="kpi-card c-accent">
+      <div class="k-label">Valor Total Vigente</div>
+      <div class="k-value" id="kpi-valor">—</div>
+      <div class="k-sub">Soma dos ativos</div>
+    </div>
+    <div class="kpi-card c-danger">
+      <div class="k-label">Vencendo em 30 dias</div>
+      <div class="k-value" id="kpi-30">—</div>
+      <div class="k-sub">Atenção imediata</div>
+    </div>
+    <div class="kpi-card c-orange">
+      <div class="k-label">Vencendo em 90 dias</div>
+      <div class="k-value" id="kpi-90">—</div>
+      <div class="k-sub">Planejamento necessário</div>
+    </div>
+    <div class="kpi-card c-warning">
+      <div class="k-label">Vencidos (12 meses)</div>
+      <div class="k-value" id="kpi-vencidos">—</div>
+      <div class="k-sub">Último ano</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Top 10 Fornecedores por Valor</h3>
+      <div class="chart-wrap"><canvas id="chart-forn"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Distribuição por Categoria</h3>
+      <div class="chart-wrap"><canvas id="chart-cat"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Contratos por Mês de Assinatura</h3>
+      <div class="chart-wrap"><canvas id="chart-timeline"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Vencimentos por Mês (próximos 12 meses)</h3>
+      <div class="chart-wrap"><canvas id="chart-venc"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <div>
+        <h3>Contratos</h3>
+        <div class="table-info" id="table-info"></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('numContrato')">Nº Contrato <span class="si">↕</span></th>
+            <th onclick="sortBy('descForn')">Fornecedor <span class="si">↕</span></th>
+            <th onclick="sortBy('descObjeto')">Objeto <span class="si">↕</span></th>
+            <th onclick="sortBy('nmUnidade')">Secretaria <span class="si">↕</span></th>
+            <th onclick="sortBy('categoria')">Categoria <span class="si">↕</span></th>
+            <th onclick="sortBy('vlContrato')" style="text-align:right">Valor <span class="si">↕</span></th>
+            <th onclick="sortBy('dtFim')">Vigência <span class="si">↕</span></th>
+            <th onclick="sortBy('status')">Status <span class="si">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="8">
+            <div class="empty-state">
+              <div class="es-icon">📋</div>
+              <h3>Nenhum dado carregado</h3>
+              <p>Clique em "Carregar Dados" para buscar os contratos da API.</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</main>
+
+<!-- Modal de detalhes -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="modal-titulo">—</h2>
+        <p id="modal-subtitulo">—</p>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <h4>Identificação</h4>
+        <div class="modal-grid">
+          <div class="modal-field"><span class="mf-label">Nº Contrato</span><span class="mf-value" id="md-numContrato">—</span></div>
+          <div class="modal-field"><span class="mf-label">Nº Processo</span><span class="mf-value" id="md-numProcesso">—</span></div>
+          <div class="modal-field"><span class="mf-label">Modalidade</span><span class="mf-value" id="md-nmModalidade">—</span></div>
+          <div class="modal-field"><span class="mf-label">Licitação</span><span class="mf-value" id="md-dsLicitacao">—</span></div>
+          <div class="modal-field"><span class="mf-label">Categoria</span><span class="mf-value" id="md-categoria">—</span></div>
+          <div class="modal-field"><span class="mf-label">Status</span><span class="mf-value" id="md-status">—</span></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <h4>Objeto</h4>
+        <div class="modal-obj" id="md-descObjeto">—</div>
+      </div>
+      <div class="modal-section">
+        <h4>Fornecedor</h4>
+        <div class="modal-grid">
+          <div class="modal-field"><span class="mf-label">Nome</span><span class="mf-value" id="md-descForn">—</span></div>
+          <div class="modal-field"><span class="mf-label">CPF / CNPJ</span><span class="mf-value" id="md-numCpfCnpj">—</span></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <h4>Financeiro</h4>
+        <div class="modal-grid">
+          <div class="modal-field"><span class="mf-label">Valor do Contrato</span><span class="mf-value" id="md-vlContrato">—</span></div>
+          <div class="modal-field"><span class="mf-label">Contrapartida</span><span class="mf-value" id="md-vlContraPartida">—</span></div>
+          <div class="modal-field"><span class="mf-label">Forma de Pagamento</span><span class="mf-value" id="md-dsFormaPagamento">—</span></div>
+          <div class="modal-field"><span class="mf-label">Parcelas</span><span class="mf-value" id="md-nuParcelas">—</span></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <h4>Datas</h4>
+        <div class="modal-grid">
+          <div class="modal-field"><span class="mf-label">Assinatura</span><span class="mf-value" id="md-dtAssinatura">—</span></div>
+          <div class="modal-field"><span class="mf-label">Publicação</span><span class="mf-value" id="md-dtPublicacao">—</span></div>
+          <div class="modal-field"><span class="mf-label">Início</span><span class="mf-value" id="md-dtInicio">—</span></div>
+          <div class="modal-field"><span class="mf-label">Fim</span><span class="mf-value" id="md-dtFim">—</span></div>
+          <div class="modal-field"><span class="mf-label">Secretaria</span><span class="mf-value" id="md-nmUnidade">—</span></div>
+          <div class="modal-field"><span class="mf-label">Competência</span><span class="mf-value" id="md-dsCompetencia">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// CONSTANTS & STATE
+// ════════════════════════════════════════
+const CACHE_KEY  = 'contratos_sete_lagoas_v1';
+const CACHE_TTL  = 6 * 60 * 60 * 1000; // 6 h
+const API_BASE   = '/proxy/api/contratos';
+const PAGE_ROWS  = 20;
+const MAX_PAGES  = 120;
+const BATCH      = 10;
+
+let allContracts      = [];
+let filteredContracts = [];
+let currentPage       = 1;
+let sortCol           = 'dtFim';
+let sortDir           = 1;
+let charts            = {};
+
+// ════════════════════════════════════════
+// DATE / NUMBER UTILS
+// ════════════════════════════════════════
+function parseDate(str) {
+  if (!str) return null;
+  if (typeof str === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(str.trim())) {
+    const [d, m, y] = str.trim().split('/');
+    return new Date(+y, +m - 1, +d);
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(str) {
+  const d = parseDate(str);
+  if (!d) return '—';
+  return d.toLocaleDateString('pt-BR');
+}
+
+function fmtCur(val) {
+  if (val == null || val === '') return '—';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }).format(+val);
+}
+
+function today() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+// ════════════════════════════════════════
+// CATEGORIZATION
+// ════════════════════════════════════════
+const CATS = [
+  { name: 'Saúde',          kw: ['saúde','saude','médic','medic','hospital','enferm','farmac','ambulânc','ambulanc','clínic','clinic','upa','ubs','odontol','psicol','nutri','fisioter','vacin','sanitár','sanitari','prontosocore','urgência','urg'] },
+  { name: 'Infraestrutura', kw: ['infraestrutur','paviment','calçad','calcad','drenagem','esgoto','saneamento','iluminaç','iluminac','elétric','eletric','tubulação','tubulac','aterro','terraplanagem','bueiro','galeria','pluvial','abastecimento de água'] },
+  { name: 'TI',             kw: ['tecnologia da informação','informátic','informatic','software','sistema de informação','computador','servidor','licença de uso','licenca de uso','internet','firewall','suporte técnic','suporte tecnic','desenvolvimento de sistem','aplicativo','hardware','impressora','scanner','nobreak','ti ','t.i.','link de dados'] },
+  { name: 'Obras',          kw: ['obra','construção','construcao','reforma','ampliação','ampliacao','revitaliz','demolic','demoliç','alvenaria','cobertura','telhado','piso','reboco','edificaç','edificac','fundaç','fundac','instalação elétrica','instalacao eletrica'] },
+  { name: 'Transporte',     kw: ['transport','veícul','veicul','ônibus','onibus','frota','combustível','combustivel','manutenção de veíc','manutencao de veic','locação de veíc','locacao de veic','caminhão','caminhao','van ','ambulância','ambulancia','moto '] },
+  { name: 'Administrativo', kw: ['limpeza','copa','vigilância','vigilancia','segurança','seguranca','material de escritório','material de escritorio','expediente','portaria','zeladoria','recepç','recepç','reprografia','plotagem','papelaria','mobiliário','mobiliario','arquivo','telefonia','correspondência'] },
+];
+
+function categorize(desc) {
+  if (!desc) return 'Outros';
+  const low = desc.toLowerCase();
+  for (const cat of CATS)
+    for (const kw of cat.kw)
+      if (low.includes(kw)) return cat.name;
+  return 'Outros';
+}
+
+// ════════════════════════════════════════
+// STATUS
+// ════════════════════════════════════════
+function getStatus(dtFim) {
+  const d = parseDate(dtFim);
+  if (!d) return 'unknown';
+  const t = today();
+  if (d < t)              return 'vencido';
+  if (d <= addDays(t,30)) return '30';
+  if (d <= addDays(t,90)) return '90';
+  return 'vigente';
+}
+
+const STATUS_LABEL = { vigente: 'Vigente', '30': 'Vence em 30d', '90': 'Vence em 90d', vencido: 'Vencido', unknown: '—' };
+const STATUS_CLASS = { vigente: 'b-vigente', '30': 'b-30', '90': 'b-90', vencido: 'b-vencido', unknown: '' };
+
+function badge(status) {
+  return `<span class="badge ${STATUS_CLASS[status] || ''}">${STATUS_LABEL[status] || status}</span>`;
+}
+
+// ════════════════════════════════════════
+// API & CACHE
+// ════════════════════════════════════════
+async function fetchPage(page) {
+  const url = `${API_BASE}?type=json&idCliente=378&page=${page}&pageSize=100&dtInicio=01/01/2021&dtFim=31/12/2052`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const data = await r.json();
+      return Array.isArray(data) ? data : [];
+    } catch {}
+  }
+  return [];
+}
+
+async function loadData() {
+  // Try cache first
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const { ts, data } = JSON.parse(raw);
+      if (Date.now() - ts < CACHE_TTL) {
+        allContracts = data;
+        document.getElementById('last-update').textContent =
+          `Cache de ${new Date(ts).toLocaleString('pt-BR')}`;
+        document.getElementById('btn-load').innerHTML =
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.75"/></svg> Atualizar Dados';
+        processData();
+        return;
+      }
+    }
+  } catch {}
+
+  // Fetch all pages
+  const btn  = document.getElementById('btn-load');
+  const wrap = document.getElementById('progress-wrap');
+  const bar  = document.getElementById('progress-bar');
+  const txt  = document.getElementById('progress-text');
+
+  btn.disabled = true;
+  btn.textContent = 'Carregando...';
+  wrap.classList.add('visible');
+
+  let page = 1, all = [], done = false;
+  const EST = 6921;
+
+  while (!done && page <= MAX_PAGES) {
+    const pages = Array.from({ length: BATCH }, (_, i) => page + i);
+    const results = await Promise.all(pages.map(fetchPage));
+
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].length === 0) { done = true; break; }
+      all = all.concat(results[i]);
+    }
+    page += BATCH;
+
+    bar.style.width = Math.min(96, Math.round((all.length / EST) * 100)) + '%';
+    txt.textContent = `${all.length.toLocaleString('pt-BR')} contratos carregados...`;
+  }
+
+  bar.style.width = '100%';
+  txt.textContent = `${all.length.toLocaleString('pt-BR')} contratos carregados`;
+
+  allContracts = all.map(c => ({
+    ...c,
+    categoria: categorize(c.descObjeto),
+    status:    getStatus(c.dtFim),
+  }));
+
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allContracts })); } catch {}
+
+  const ts = new Date().toLocaleString('pt-BR');
+  document.getElementById('last-update').textContent = `Atualizado em ${ts}`;
+
+  setTimeout(() => {
+    wrap.classList.remove('visible');
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.75"/></svg> Atualizar Dados';
+  }, 1200);
+
+  processData();
+}
+
+// ════════════════════════════════════════
+// PROCESS
+// ════════════════════════════════════════
+function processData() {
+  // Re-compute date-sensitive fields
+  allContracts = allContracts.map(c => ({
+    ...c,
+    categoria: c.categoria || categorize(c.descObjeto),
+    status:    getStatus(c.dtFim),
+  }));
+  populateFilters();
+  applyFilters();
+}
+
+// ════════════════════════════════════════
+// MULTISELECT
+// ════════════════════════════════════════
+const MS_IDS = ['secretaria', 'categoria', 'modalidade'];
+
+function toggleMS(id) {
+  MS_IDS.forEach(other => {
+    if (other !== id) {
+      document.getElementById(`ms-${other}-dropdown`).classList.remove('open');
+      document.getElementById(`ms-${other}-trigger`).classList.remove('open');
+    }
+  });
+  const dd  = document.getElementById(`ms-${id}-dropdown`);
+  const tr  = document.getElementById(`ms-${id}-trigger`);
+  const open = dd.classList.toggle('open');
+  tr.classList.toggle('open', open);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.multiselect')) {
+    MS_IDS.forEach(id => {
+      document.getElementById(`ms-${id}-dropdown`).classList.remove('open');
+      document.getElementById(`ms-${id}-trigger`).classList.remove('open');
+    });
+  }
+});
+
+function buildMS(id, options) {
+  const dd = document.getElementById(`ms-${id}-dropdown`);
+  dd.innerHTML = '';
+
+  // Botões marcar/desmarcar todas
+  const actions = document.createElement('div');
+  actions.className = 'ms-actions';
+  const btnAll = document.createElement('button');
+  btnAll.className = 'ms-act-btn';
+  btnAll.textContent = '✓ Todas';
+  btnAll.onclick = () => { dd.querySelectorAll('input').forEach(cb => cb.checked = true); updateMSLabel(id); applyFilters(); };
+  const btnNone = document.createElement('button');
+  btnNone.className = 'ms-act-btn';
+  btnNone.textContent = '✗ Nenhuma';
+  btnNone.onclick = () => { dd.querySelectorAll('input').forEach(cb => cb.checked = false); updateMSLabel(id); applyFilters(); };
+  actions.appendChild(btnAll);
+  actions.appendChild(btnNone);
+  dd.appendChild(actions);
+
+  options.forEach(opt => {
+    const div = document.createElement('div');
+    div.className = 'ms-option';
+    const cb  = document.createElement('input');
+    cb.type    = 'checkbox';
+    cb.value   = opt;
+    cb.checked = true;
+    cb.addEventListener('change', () => { updateMSLabel(id); applyFilters(); });
+    div.appendChild(cb);
+    div.appendChild(document.createTextNode(opt));
+    dd.appendChild(div);
+  });
+  updateMSLabel(id);
+}
+
+function updateMSLabel(id) {
+  const dd    = document.getElementById(`ms-${id}-dropdown`);
+  const all   = dd.querySelectorAll('input');
+  const chked = dd.querySelectorAll('input:checked');
+  const lbl   = document.getElementById(`ms-${id}-label`);
+  lbl.textContent = (all.length === 0 || all.length === chked.length) ? 'Todas' : `${chked.length} / ${all.length}`;
+}
+
+function getMSValues(id) {
+  const dd    = document.getElementById(`ms-${id}-dropdown`);
+  const all   = dd.querySelectorAll('input');
+  const chked = dd.querySelectorAll('input:checked');
+  if (all.length === 0 || all.length === chked.length) return null; // null = pass all
+  return new Set([...chked].map(cb => cb.value));
+}
+
+function populateFilters() {
+  const secs  = [...new Set(allContracts.map(c => c.nmUnidade).filter(Boolean))].sort();
+  const cats  = [...new Set(allContracts.map(c => c.categoria))].sort();
+  const mods  = [...new Set(allContracts.map(c => c.nmModalidade).filter(Boolean))].sort();
+  buildMS('secretaria', secs);
+  buildMS('categoria',  cats);
+  buildMS('modalidade', mods);
+}
+
+// ════════════════════════════════════════
+// FILTERS
+// ════════════════════════════════════════
+function applyFilters() {
+  const search = document.getElementById('filter-search').value.trim().toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  const secs   = getMSValues('secretaria');
+  const cats   = getMSValues('categoria');
+  const mods   = getMSValues('modalidade');
+
+  filteredContracts = allContracts.filter(c => {
+    if (search) {
+      const hay = `${c.descForn || ''} ${c.descObjeto || ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (status && c.status !== status) return false;
+    if (secs !== null && !secs.has(c.nmUnidade)) return false;
+    if (cats !== null && !cats.has(c.categoria))  return false;
+    if (mods !== null && !mods.has(c.nmModalidade)) return false;
+    return true;
+  });
+
+  currentPage = 1;
+  updateKPIs();
+  updateCharts();
+  updateTable();
+  updateAlert();
+}
+
+function resetFilters() {
+  document.getElementById('filter-search').value = '';
+  document.getElementById('filter-status').value = '';
+  MS_IDS.forEach(id => {
+    const dd = document.getElementById(`ms-${id}-dropdown`);
+    dd.querySelectorAll('input').forEach(cb => { cb.checked = true; });
+    updateMSLabel(id);
+  });
+  applyFilters();
+}
+
+// ════════════════════════════════════════
+// KPIs
+// ════════════════════════════════════════
+function updateKPIs() {
+  const t      = today();
+  const t12ago = addDays(t, -365);
+
+  const vigentes = filteredContracts.filter(c => ['vigente','30','90'].includes(c.status));
+  const v30      = filteredContracts.filter(c => c.status === '30');
+  const v90      = filteredContracts.filter(c => c.status === '90');
+  const venc12   = filteredContracts.filter(c => {
+    const d = parseDate(c.dtFim);
+    return d && d < t && d >= t12ago;
+  });
+  const valorV = vigentes.reduce((s, c) => s + (+c.vlContrato || 0), 0);
+
+  document.getElementById('kpi-vigentes').textContent  = vigentes.length.toLocaleString('pt-BR');
+  document.getElementById('kpi-valor').textContent     = fmtCur(valorV);
+  document.getElementById('kpi-30').textContent        = v30.length.toLocaleString('pt-BR');
+  document.getElementById('kpi-90').textContent        = v90.length.toLocaleString('pt-BR');
+  document.getElementById('kpi-vencidos').textContent  = venc12.length.toLocaleString('pt-BR');
+}
+
+// ════════════════════════════════════════
+// CHARTS
+// ════════════════════════════════════════
+const PALETTE = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#f59e0b','#22c55e','#14b8a6','#06b6d4','#a855f7','#ef4444'];
+const GRID_C  = '#2d3348';
+const TICK_C  = '#8892a4';
+
+Chart.defaults.color = TICK_C;
+Chart.defaults.font.family = "'Sora', sans-serif";
+Chart.defaults.font.size = 11;
+
+function destroyC(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+
+function updateCharts() {
+  chartForn();
+  chartCat();
+  chartTimeline();
+  chartVenc();
+}
+
+function chartForn() {
+  destroyC('forn');
+  const map = {};
+  filteredContracts.forEach(c => {
+    const k = (c.descForn || 'Desconhecido').trim();
+    map[k] = (map[k] || 0) + (+c.vlContrato || 0);
+  });
+  const top = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const labels = top.map(([k]) => k.length > 32 ? k.slice(0,32)+'…' : k);
+  const values = top.map(([,v]) => v);
+
+  charts.forn = new Chart(document.getElementById('chart-forn'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: PALETTE[0]+'cc', borderRadius: 5, borderSkipped: false }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtCur(ctx.raw) } } },
+      scales: {
+        x: { ticks: { color: TICK_C, callback: v => 'R$' + (v>=1e6 ? (v/1e6).toFixed(1)+'M' : (v/1e3).toFixed(0)+'k') }, grid: { color: GRID_C } },
+        y: { ticks: { color: TICK_C }, grid: { display: false } },
+      }
+    }
+  });
+}
+
+function chartCat() {
+  destroyC('cat');
+  const map = {};
+  filteredContracts.forEach(c => { map[c.categoria] = (map[c.categoria] || 0) + 1; });
+  if (Object.keys(map).length === 0) return;
+  const labels = Object.keys(map);
+  const values = Object.values(map);
+
+  charts.cat = new Chart(document.getElementById('chart-cat'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#1a1d27', hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: TICK_C, padding: 10, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} contratos` } }
+      }
+    }
+  });
+}
+
+function chartTimeline() {
+  destroyC('timeline');
+  const map = {};
+  filteredContracts.forEach(c => {
+    const d = parseDate(c.dtAssinatura);
+    if (!d) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    map[key] = (map[key] || 0) + 1;
+  });
+  const entries = Object.entries(map).sort(([a],[b]) => a.localeCompare(b));
+  const labels  = entries.map(([k]) => {
+    const [y,m] = k.split('-');
+    return new Date(+y,+m-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+  });
+  const values = entries.map(([,v]) => v);
+
+  charts.timeline = new Chart(document.getElementById('chart-timeline'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: PALETTE[0],
+        backgroundColor: PALETTE[0]+'22',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        pointBackgroundColor: PALETTE[0],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: TICK_C, maxTicksLimit: 14 }, grid: { color: GRID_C } },
+        y: { ticks: { color: TICK_C }, grid: { color: GRID_C } },
+      }
+    }
+  });
+}
+
+function chartVenc() {
+  destroyC('venc');
+  const t = today();
+  const months = Array.from({length:12}, (_,i) => {
+    const d = new Date(t.getFullYear(), t.getMonth()+i, 1);
+    return {
+      y: d.getFullYear(), m: d.getMonth(),
+      label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'})
+    };
+  });
+
+  const buckets = months.map(() => ({ vigente:0, '30':0, '90':0 }));
+
+  filteredContracts.forEach(c => {
+    const d = parseDate(c.dtFim);
+    if (!d) return;
+    const idx = months.findIndex(mo => mo.y === d.getFullYear() && mo.m === d.getMonth());
+    if (idx === -1) return;
+    const s = c.status;
+    if (s === 'vigente' || s === '30' || s === '90') buckets[idx][s]++;
+  });
+
+  charts.venc = new Chart(document.getElementById('chart-venc'), {
+    type: 'bar',
+    data: {
+      labels: months.map(m => m.label),
+      datasets: [
+        { label: 'Vigentes',      data: buckets.map(b => b.vigente), backgroundColor: '#22c55e99', borderRadius: 4, stack:'s' },
+        { label: 'Vence em 90d', data: buckets.map(b => b['90']),    backgroundColor: '#f9731699', borderRadius: 4, stack:'s' },
+        { label: 'Vence em 30d', data: buckets.map(b => b['30']),    backgroundColor: '#ef444499', borderRadius: 4, stack:'s' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: TICK_C, padding: 10, boxWidth: 12 } } },
+      scales: {
+        x: { stacked: true, ticks: { color: TICK_C }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: TICK_C }, grid: { color: GRID_C } },
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// TABLE
+// ════════════════════════════════════════
+const SORT_COLS = ['numContrato','descForn','descObjeto','nmUnidade','categoria','vlContrato','dtFim','status'];
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  document.querySelectorAll('thead th').forEach((th, i) => {
+    th.classList.toggle('sorted', SORT_COLS[i] === sortCol);
+    const si = th.querySelector('.si');
+    if (si) si.textContent = SORT_COLS[i] === sortCol ? (sortDir === 1 ? '↑' : '↓') : '↕';
+  });
+  updateTable();
+}
+
+function updateTable() {
+  const tbody = document.getElementById('table-body');
+
+  if (filteredContracts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="es-icon">🔍</div><h3>Nenhum contrato encontrado</h3><p>Ajuste os filtros para ver resultados.</p></div></td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    document.getElementById('table-info').textContent = '';
+    return;
+  }
+
+  const sorted = [...filteredContracts].sort((a, b) => {
+    let va = a[sortCol] ?? '';
+    let vb = b[sortCol] ?? '';
+    if (sortCol === 'vlContrato') { va = +va||0; vb = +vb||0; return sortDir*(va-vb); }
+    if (['dtFim','dtInicio','dtAssinatura'].includes(sortCol)) {
+      va = parseDate(va)||new Date(0); vb = parseDate(vb)||new Date(0);
+      return sortDir*(va-vb);
+    }
+    if (sortCol === 'status') {
+      const order = { '30':0, '90':1, vigente:2, vencido:3, unknown:4 };
+      return sortDir*((order[va]??5)-(order[vb]??5));
+    }
+    return sortDir*String(va).localeCompare(String(vb),'pt-BR');
+  });
+
+  _sortedForModal = sorted;
+  const total = sorted.length;
+  const pages = Math.ceil(total / PAGE_ROWS);
+  currentPage = Math.max(1, Math.min(currentPage, pages));
+  const slice = sorted.slice((currentPage-1)*PAGE_ROWS, currentPage*PAGE_ROWS);
+
+  document.getElementById('table-info').textContent =
+    `${total.toLocaleString('pt-BR')} contrato${total!==1?'s':''} encontrado${total!==1?'s':''}`;
+
+  tbody.innerHTML = slice.map((c, i) => {
+    const obj = (c.descObjeto || '');
+    const objShort = obj.length > 80 ? obj.slice(0,80)+'…' : obj;
+    const forn = c.descForn || '—';
+    const sec  = c.nmUnidade || '—';
+    const realIdx = (currentPage-1)*PAGE_ROWS + i;
+    return `<tr onclick="openModal(${realIdx})">
+      <td style="font-size:11px;font-family:monospace;white-space:nowrap;">${c.numContrato||'—'}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(forn)}">${esc(forn)}</td>
+      <td style="max-width:200px;" title="${esc(obj)}">${esc(objShort)||'—'}</td>
+      <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(sec)}">${esc(sec)}</td>
+      <td style="white-space:nowrap;">${c.categoria}</td>
+      <td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;">${fmtCur(c.vlContrato)}</td>
+      <td style="white-space:nowrap;font-size:11px;">${fmtDate(c.dtInicio)} – ${fmtDate(c.dtFim)}</td>
+      <td>${badge(c.status)}</td>
+    </tr>`;
+  }).join('');
+
+  renderPagination(pages);
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderPagination(total) {
+  const p = document.getElementById('pagination');
+  if (total <= 1) { p.innerHTML = ''; return; }
+
+  const range = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= currentPage-2 && i <= currentPage+2)) {
+      range.push(i);
+    } else if (range[range.length-1] !== '…') {
+      range.push('…');
+    }
+  }
+
+  let html = `<button class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  range.forEach(r => {
+    if (r === '…') html += `<span class="pg-ellipsis">…</span>`;
+    else html += `<button class="pg-btn ${r===currentPage?'active':''}" onclick="goPage(${r})">${r}</button>`;
+  });
+  html += `<button class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+  p.innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filteredContracts.length / PAGE_ROWS);
+  if (p < 1 || p > total) return;
+  currentPage = p;
+  updateTable();
+  document.querySelector('.table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ════════════════════════════════════════
+// ALERT PANEL
+// ════════════════════════════════════════
+function updateAlert() {
+  const panel = document.getElementById('alert-panel');
+  const list  = document.getElementById('alert-list');
+  const urgent = filteredContracts
+    .filter(c => c.status === '30')
+    .sort((a,b) => (parseDate(a.dtFim)||new Date(0)) - (parseDate(b.dtFim)||new Date(0)));
+
+  if (urgent.length === 0) { panel.classList.remove('visible'); return; }
+  panel.classList.add('visible');
+
+  const shown = urgent.slice(0, 10);
+  list.innerHTML = shown.map(c => `
+    <div class="alert-item">
+      <div class="ai-num">${c.numContrato||'—'} · <span class="ai-date">${fmtDate(c.dtFim)}</span></div>
+      <div class="ai-forn">${esc((c.descForn||'').slice(0,45))}${(c.descForn||'').length>45?'…':''}</div>
+      <div class="ai-obj">${esc((c.descObjeto||'').slice(0,65))}${(c.descObjeto||'').length>65?'…':''}</div>
+    </div>
+  `).join('') + (urgent.length > 10 ? `<div class="alert-more">+${urgent.length-10} contratos</div>` : '');
+}
+
+// ════════════════════════════════════════
+// CSV EXPORT
+// ════════════════════════════════════════
+function exportCSV() {
+  if (filteredContracts.length === 0) { alert('Nenhum dado para exportar.'); return; }
+  const FIELDS = [
+    ['numContrato','Nº Contrato'],['numProcesso','Nº Processo'],['descForn','Fornecedor'],
+    ['descObjeto','Objeto'],['nmUnidade','Secretaria'],['categoria','Categoria'],
+    ['vlContrato','Valor'],['dtInicio','Início'],['dtFim','Fim'],['dtAssinatura','Assinatura'],
+    ['nmModalidade','Modalidade'],['status','Status'],
+  ];
+  const header = FIELDS.map(([,l]) => `"${l}"`).join(';');
+  const rows = filteredContracts.map(c =>
+    FIELDS.map(([k]) => {
+      const v = k === 'status' ? STATUS_LABEL[c[k]] || c[k] : (c[k] ?? '');
+      return `"${String(v).replace(/"/g,'""')}"`;
+    }).join(';')
+  );
+  const csv  = '\uFEFF' + [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `contratos-sete-lagoas-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════
+// ════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════
+let _sortedForModal = [];
+
+function openModal(idx) {
+  const c = _sortedForModal[idx];
+  if (!c) return;
+
+  document.getElementById('modal-titulo').textContent   = c.numContrato || '—';
+  document.getElementById('modal-subtitulo').textContent = c.descForn || '—';
+  document.getElementById('md-numContrato').textContent  = c.numContrato || '—';
+  document.getElementById('md-numProcesso').textContent  = c.numProcesso || '—';
+  document.getElementById('md-nmModalidade').textContent = c.nmModalidade || '—';
+  document.getElementById('md-dsLicitacao').textContent  = c.dsLicitacao || '—';
+  document.getElementById('md-categoria').textContent    = c.categoria || '—';
+  document.getElementById('md-status').innerHTML         = badge(c.status);
+  document.getElementById('md-descObjeto').textContent   = c.descObjeto || '—';
+  document.getElementById('md-descForn').textContent     = c.descForn || '—';
+  document.getElementById('md-numCpfCnpj').textContent   = c.numCpfCnpj || '—';
+  document.getElementById('md-vlContrato').textContent   = fmtCur(c.vlContrato);
+  document.getElementById('md-vlContraPartida').textContent = fmtCur(c.vlContraPartida);
+  document.getElementById('md-dsFormaPagamento').textContent = c.dsFormaPagamento || '—';
+  document.getElementById('md-nuParcelas').textContent   = c.nuParcelas || '—';
+  document.getElementById('md-dtAssinatura').textContent = fmtDate(c.dtAssinatura);
+  document.getElementById('md-dtPublicacao').textContent = fmtDate(c.dtPublicacao);
+  document.getElementById('md-dtInicio').textContent     = fmtDate(c.dtInicio);
+  document.getElementById('md-dtFim').textContent        = fmtDate(c.dtFim);
+  document.getElementById('md-nmUnidade').textContent    = c.nmUnidade || '—';
+  document.getElementById('md-dsCompetencia').textContent = c.dsCompetencia || '—';
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// INIT — auto-load cache on page open
+// ════════════════════════════════════════
+(function init() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const { ts, data } = JSON.parse(raw);
+      if (Date.now() - ts < CACHE_TTL) {
+        allContracts = data;
+        document.getElementById('last-update').textContent =
+          `Cache de ${new Date(ts).toLocaleString('pt-BR')}`;
+        document.getElementById('btn-load').innerHTML =
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.75"/></svg> Atualizar Dados';
+        processData();
+        return;
+      }
+    }
+  } catch {}
+  // Sem cache válido: busca automaticamente ao abrir
+  loadData();
+})();
+</script>
+</body>
+</html>
