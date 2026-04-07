@@ -1,0 +1,58 @@
+name: Atualizar contratos
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # a cada 6 horas
+  workflow_dispatch:          # permite rodar manualmente pelo GitHub
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Buscar contratos da API
+        run: |
+          python3 - <<'EOF'
+          import urllib.request, json, sys
+
+          API = "https://dadosabertos-portalfacil.azurewebsites.net/api/contratos"
+          PARAMS = "type=json&idCliente=378&pageSize=100&dtInicio=01/01/2021&dtFim=31/12/2052"
+          HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+          all_data = []
+          page = 1
+
+          while True:
+              url = f"{API}?{PARAMS}&page={page}"
+              req = urllib.request.Request(url, headers=HEADERS)
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      data = json.loads(resp.read())
+              except Exception as e:
+                  print(f"Erro na página {page}: {e}", file=sys.stderr)
+                  break
+
+              if not isinstance(data, list) or len(data) == 0:
+                  break
+
+              all_data.extend(data)
+              print(f"Página {page}: {len(data)} registros | Total: {len(all_data)}")
+              page += 1
+
+          with open("contratos.json", "w", encoding="utf-8") as f:
+              json.dump(all_data, f, ensure_ascii=False)
+
+          print(f"\nTotal final: {len(all_data)} contratos salvos em contratos.json")
+          EOF
+
+      - name: Commit contratos.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add contratos.json
+          git diff --cached --quiet || git commit -m "chore: atualizar contratos.json [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push
