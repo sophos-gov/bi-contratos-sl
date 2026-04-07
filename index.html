@@ -715,10 +715,8 @@
 // ════════════════════════════════════════
 const CACHE_KEY  = 'contratos_sete_lagoas_v1';
 const CACHE_TTL  = 6 * 60 * 60 * 1000; // 6 h
-const API_BASE   = '/proxy/api/contratos';
+const DATA_URL   = 'contratos.json';
 const PAGE_ROWS  = 20;
-const MAX_PAGES  = 120;
-const BATCH      = 10;
 
 let allContracts      = [];
 let filteredContracts = [];
@@ -805,21 +803,8 @@ function badge(status) {
 }
 
 // ════════════════════════════════════════
-// API & CACHE
+// DADOS & CACHE
 // ════════════════════════════════════════
-async function fetchPage(page) {
-  const url = `${API_BASE}?type=json&idCliente=378&page=${page}&pageSize=100&dtInicio=01/01/2021&dtFim=31/12/2052`;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const data = await r.json();
-      return Array.isArray(data) ? data : [];
-    } catch {}
-  }
-  return [];
-}
-
 async function loadData() {
   // Try cache first
   try {
@@ -838,7 +823,6 @@ async function loadData() {
     }
   } catch {}
 
-  // Fetch all pages
   const btn  = document.getElementById('btn-load');
   const wrap = document.getElementById('progress-wrap');
   const bar  = document.getElementById('progress-bar');
@@ -847,37 +831,34 @@ async function loadData() {
   btn.disabled = true;
   btn.textContent = 'Carregando...';
   wrap.classList.add('visible');
+  bar.style.width = '60%';
+  txt.textContent = 'Buscando contratos...';
 
-  let page = 1, all = [], done = false;
-  const EST = 6921;
+  try {
+    const r = await fetch(DATA_URL);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const raw = await r.json();
 
-  while (!done && page <= MAX_PAGES) {
-    const pages = Array.from({ length: BATCH }, (_, i) => page + i);
-    const results = await Promise.all(pages.map(fetchPage));
+    bar.style.width = '100%';
+    txt.textContent = `${raw.length.toLocaleString('pt-BR')} contratos carregados`;
 
-    for (let i = 0; i < results.length; i++) {
-      if (results[i].length === 0) { done = true; break; }
-      all = all.concat(results[i]);
-    }
-    page += BATCH;
+    allContracts = raw.map(c => ({
+      ...c,
+      categoria: categorize(c.descObjeto),
+      status:    getStatus(c.dtFim),
+    }));
 
-    bar.style.width = Math.min(96, Math.round((all.length / EST) * 100)) + '%';
-    txt.textContent = `${all.length.toLocaleString('pt-BR')} contratos carregados...`;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allContracts })); } catch {}
+
+    document.getElementById('last-update').textContent =
+      `Atualizado em ${new Date().toLocaleString('pt-BR')}`;
+  } catch (e) {
+    txt.textContent = `Erro ao carregar dados: ${e.message}`;
+    bar.style.background = 'var(--danger)';
+    btn.disabled = false;
+    btn.textContent = 'Tentar novamente';
+    return;
   }
-
-  bar.style.width = '100%';
-  txt.textContent = `${all.length.toLocaleString('pt-BR')} contratos carregados`;
-
-  allContracts = all.map(c => ({
-    ...c,
-    categoria: categorize(c.descObjeto),
-    status:    getStatus(c.dtFim),
-  }));
-
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allContracts })); } catch {}
-
-  const ts = new Date().toLocaleString('pt-BR');
-  document.getElementById('last-update').textContent = `Atualizado em ${ts}`;
 
   setTimeout(() => {
     wrap.classList.remove('visible');
